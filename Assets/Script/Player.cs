@@ -4,74 +4,51 @@ public class Player : MonoBehaviour
 {
     public float speed = 6f;            // The speed that the player will move at.
 
-    Vector3 movement;                   // The vector to store the direction of the player's movement.
-    Rigidbody playerRigidbody;          // Reference to the player's rigidbody.
     int floorMask;                      // A layer mask so that a ray can be cast just at gameobjects on the floor layer.
     float camRayLength = 100f;          // The length of the ray from the camera into the scene.
+    CharacterController controller;
+    public float jumpSpeed = 8.0F;
+    public float gravity = 20.0F;
+    private Vector3 moveDirection = Vector3.zero;
 
 
-    float distToGround ;
- 
-
-void Awake()
+       void Awake()
     {
         // Create a layer mask for the floor layer.
         floorMask = LayerMask.GetMask("Floor");
-
-        // Set up references.
-        playerRigidbody = GetComponent<Rigidbody>();
+        controller = GetComponent<CharacterController>();
     }
+
+
+
+    // Use this for initialization
     void Start()
     {
-        // get the distance to ground
-        distToGround = gameObject.GetComponent<Collider>().bounds.extents.y;
+
     }
 
-
-
-
+    // Update is called once per frame
     void FixedUpdate()
     {
-        // Store the input axes.
-        float h = Input.GetAxisRaw("Horizontal");
-        float v = Input.GetAxisRaw("Vertical");
 
-        // Move the player around the scene.
-        Move(h, v);
+        if (controller.isGrounded)
+        {
+            moveDirection = new Vector3(0, 0, Input.GetAxis("Vertical") > 0? Input.GetAxis("Vertical") : 0);
+            moveDirection = transform.TransformDirection(moveDirection);
+            moveDirection *= speed;
+            if (Input.GetButton("Jump"))
+                moveDirection.y = jumpSpeed;
 
-        // Turn the player to face the mouse cursor.
+        }
+        moveDirection.y -= gravity * Time.deltaTime;
+        controller.Move(moveDirection * Time.deltaTime);
+
+
         Turning();
 
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Jump();
-        }
-
-    }
-    bool IsGrounded()
-    {
-        return Physics.Raycast(transform.position, -Vector3.up, distToGround + 0.2f);
     }
 
-    void Jump()
-    {
-        if (IsGrounded())//Mathf.Abs(playerRigidbody.velocity.y) <= 0.5)
-        {
-            playerRigidbody.AddForce(new Vector3(0, 10, 0), ForceMode.Impulse);
-        }
-    }
 
-    void Move(float h, float v)
-    {
-        // Set the movement vector based on the axis input.
-        movement.Set(h, 0f, v);
-
-        // Normalise the movement vector and make it proportional to the speed per second.
-        movement = movement.normalized * speed * Time.deltaTime;
-
-        // Move the player to it's current position plus the movement.
-        playerRigidbody.MovePosition(transform.position + movement);
-    }
 
     void Turning()
     {
@@ -94,7 +71,8 @@ void Awake()
             Quaternion newRotation = Quaternion.LookRotation(playerToMouse);
 
             // Set the player's rotation to this new rotation.
-            playerRigidbody.MoveRotation(newRotation);
+            // playerRigidbody.MoveRotation(newRotation);
+            transform.rotation = (newRotation);
         }
     }
 
