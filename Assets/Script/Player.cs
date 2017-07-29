@@ -11,12 +11,18 @@ public class Player : MonoBehaviour
     public float gravity = 20.0F;
     private Vector3 moveDirection = Vector3.zero;
 
+    Vector2 mouseLook;
+    Vector2 smoothV;
+    public float sensitivity = 5.0f;
+    public float smoothing = 2.0f;
 
-       void Awake()
+    void Awake()
     {
         // Create a layer mask for the floor layer.
         floorMask = LayerMask.GetMask("Floor");
         controller = GetComponent<CharacterController>();
+        UnityEngine.Cursor.visible = false;
+
     }
 
 
@@ -33,7 +39,7 @@ public class Player : MonoBehaviour
 
         if (controller.isGrounded)
         {
-            moveDirection = new Vector3(0, 0, Input.GetAxis("Vertical") > 0? Input.GetAxis("Vertical") : 0);
+            moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
             moveDirection = transform.TransformDirection(moveDirection);
             moveDirection *= speed;
             if (Input.GetButton("Jump"))
@@ -52,28 +58,23 @@ public class Player : MonoBehaviour
 
     void Turning()
     {
-        // Create a ray from the mouse cursor on screen in the direction of the camera.
-        Ray camRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+        //see http://answers.unity3d.com/questions/574457/limit-rotation-using-mathclamp.html second answer
 
-        // Create a RaycastHit variable to store information about what was hit by the ray.
-        RaycastHit floorHit;
+        var md = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
 
-        // Perform the raycast and if it hits something on the floor layer...
-        if (Physics.Raycast(camRay, out floorHit, camRayLength, floorMask))
-        {
-            // Create a vector from the player to the point on the floor the raycast from the mouse hit.
-            Vector3 playerToMouse = floorHit.point - transform.position;
+        md = Vector2.Scale(md, new Vector2(sensitivity * smoothing, sensitivity * smoothing));
+        smoothV.x = Mathf.Lerp(smoothV.x, md.x, 1f / smoothing);
+        smoothV.y = Mathf.Lerp(smoothV.y, md.y, 1f / smoothing);
+        mouseLook += smoothV;
+        transform.localRotation = Quaternion.AngleAxis(mouseLook.x, transform.up);
 
-            // Ensure the vector is entirely along the floor plane.
-            playerToMouse.y = 0f;
+        Quaternion rot = Quaternion.AngleAxis(-1 * mouseLook.y, Vector3.right);
+        float x = Mathf.Clamp(rot.x, -0.7f, 0.7f);
+        Debug.Log(rot.x + "  " + Mathf.Clamp(rot.x, -0.7f, 0.7f) +" " +x);
+        Camera.main.gameObject.transform.localRotation = new Quaternion(x, rot.y, rot.z, 1.0f);
 
-            // Create a quaternion (rotation) based on looking down the vector from the player to the mouse.
-            Quaternion newRotation = Quaternion.LookRotation(playerToMouse);
+        Debug.Log(Camera.main.gameObject.transform.localRotation);
 
-            // Set the player's rotation to this new rotation.
-            // playerRigidbody.MoveRotation(newRotation);
-            transform.rotation = (newRotation);
-        }
     }
 
 }
